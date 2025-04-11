@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 import random
 
-def splatting(size, num_splats=30, splat_radius_lower=3, splat_radius_upper=6, blur_radius=3, border_range=2):
+def splatting(size, num_splats=30, splat_radius_lower=3, splat_radius_upper=6, blur_radius=3):
     image = np.ones((size, size, 3), dtype=np.uint8) * 255
 
     for _ in range(num_splats):
@@ -23,7 +23,33 @@ def splatting(size, num_splats=30, splat_radius_lower=3, splat_radius_upper=6, b
     blurred = img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
     blurred.show()
 
-def paving_stones(size, num_stones=10, stone_spacing=32):
+def normal_map(img, strength=1.0):
+    gray = img.convert("L")
+    gray_np = np.asarray(gray, dtype=np.float32)
+
+    gray_np /= 255.0
+
+    dx = np.gradient(gray_np, axis=1)
+    dy = np.gradient(gray_np, axis=0)
+
+    normal_x = -dx * strength
+    normal_y = -dy * strength
+    normal_z = np.ones_like(gray_np)
+
+    length = np.sqrt(normal_x**2 + normal_y**2 + normal_z**2)
+    normal_x /= length
+    normal_y /= length
+    normal_z /= length
+
+    normal_map = np.stack((
+        (normal_x * 0.5 + 0.5) * 255,
+        (normal_y * 0.5 + 0.5) * 255,
+        (normal_z * 0.5 + 0.5) * 255
+    ), axis=2).astype(np.uint8)
+
+    return Image.fromarray(normal_map)
+
+def paving_stones(size, num_stones=10, stone_spacing=32, border_range=2):
     image = np.ones((size, size, 3), dtype=np.uint8) * 255
     
     point_list = []
@@ -97,9 +123,12 @@ def paving_stones(size, num_stones=10, stone_spacing=32):
                         image[x + nx, y + ny] = [color, color, color]
 
     img = Image.fromarray(image)
-    blurred = img.filter(ImageFilter.GaussianBlur(radius=3))
-    blurred.show()
+    blurred = img.filter(ImageFilter.GaussianBlur(radius=2))
+    return blurred
 
 random.seed()
 # splatting(size=64, num_splats=45, splat_radius_lower=3, splat_radius_upper=8, blur_radius=4)
-paving_stones(128, 20)
+img = paving_stones(size=128, num_stones=20, stone_spacing=32, border_range=2)
+normal_img = normal_map(img)
+normal_img.show()
+img.show()
