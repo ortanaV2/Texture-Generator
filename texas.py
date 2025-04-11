@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 import random
 
-def splatting(size, num_splats=30, splat_radius_lower=3, splat_radius_upper=6, blur_radius=3):
+def splatting(size, num_splats=30, splat_radius_lower=3, splat_radius_upper=6, blur_radius=3, border_range=2):
     image = np.ones((size, size, 3), dtype=np.uint8) * 255
 
     for _ in range(num_splats):
@@ -71,7 +71,7 @@ def paving_stones(size, num_stones=10, stone_spacing=32):
         if all([(len(border_points[point_i]) == 0) for point_i in border_points]):
             break
     
-    for _ in range(2):
+    for _ in range(border_range):
         new_borders = []
         for bx, by in constant_borders:
             for nx, ny in ((-1, 0), (1, 0), (0, -1), (0, 1)):
@@ -87,6 +87,14 @@ def paving_stones(size, num_stones=10, stone_spacing=32):
             image[point[0], point[1]] = [255, 255, 255]
     for point in constant_borders:
             image[point[0], point[1]] = [255, 255, 255]
+
+    for x in range(size):
+        for y in range(size):
+            if list(image[x, y]) == [0, 0, 0]:
+                color = random.randint(0, 75)
+                for nx, ny in ((-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)):
+                    if 0 <= x + nx < size and 0 <= y + ny < size:
+                        image[x + nx, y + ny] = [color, color, color]
 
     img = Image.fromarray(image)
     blurred = img.filter(ImageFilter.GaussianBlur(radius=3))
